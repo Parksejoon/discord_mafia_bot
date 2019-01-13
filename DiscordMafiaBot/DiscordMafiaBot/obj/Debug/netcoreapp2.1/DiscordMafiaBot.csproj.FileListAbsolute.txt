@@ -9,3 +9,14 @@ C:\Users\qkeh4\source\repos\DiscordMafiaBot\DiscordMafiaBot\obj\Debug\netcoreapp
 C:\Users\qkeh4\source\repos\DiscordMafiaBot\DiscordMafiaBot\bin\Debug\netcoreapp2.1\DiscordMafiaBot.pdb
 C:\Users\qkeh4\source\repos\DiscordMafiaBot\DiscordMafiaBot\obj\Debug\netcoreapp2.1\DiscordMafiaBot.dll
 C:\Users\qkeh4\source\repos\DiscordMafiaBot\DiscordMafiaBot\obj\Debug\netcoreapp2.1\DiscordMafiaBot.pdb
+C:\Users\qkeh4\OneDrive\문서\PSJ\Project\DiscordMafiaBot\DiscordMafiaBot\DiscordMafiaBot\bin\Debug\netcoreapp2.1\DiscordMafiaBot.deps.json
+C:\Users\qkeh4\OneDrive\문서\PSJ\Project\DiscordMafiaBot\DiscordMafiaBot\DiscordMafiaBot\bin\Debug\netcoreapp2.1\DiscordMafiaBot.runtimeconfig.json
+C:\Users\qkeh4\OneDrive\문서\PSJ\Project\DiscordMafiaBot\DiscordMafiaBot\DiscordMafiaBot\bin\Debug\netcoreapp2.1\DiscordMafiaBot.runtimeconfig.dev.json
+C:\Users\qkeh4\OneDrive\문서\PSJ\Project\DiscordMafiaBot\DiscordMafiaBot\DiscordMafiaBot\bin\Debug\netcoreapp2.1\DiscordMafiaBot.dll
+C:\Users\qkeh4\OneDrive\문서\PSJ\Project\DiscordMafiaBot\DiscordMafiaBot\DiscordMafiaBot\bin\Debug\netcoreapp2.1\DiscordMafiaBot.pdb
+C:\Users\qkeh4\OneDrive\문서\PSJ\Project\DiscordMafiaBot\DiscordMafiaBot\DiscordMafiaBot\obj\Debug\netcoreapp2.1\DiscordMafiaBot.csprojAssemblyReference.cache
+C:\Users\qkeh4\OneDrive\문서\PSJ\Project\DiscordMafiaBot\DiscordMafiaBot\DiscordMafiaBot\obj\Debug\netcoreapp2.1\DiscordMafiaBot.csproj.CoreCompileInputs.cache
+C:\Users\qkeh4\OneDrive\문서\PSJ\Project\DiscordMafiaBot\DiscordMafiaBot\DiscordMafiaBot\obj\Debug\netcoreapp2.1\DiscordMafiaBot.AssemblyInfoInputs.cache
+C:\Users\qkeh4\OneDrive\문서\PSJ\Project\DiscordMafiaBot\DiscordMafiaBot\DiscordMafiaBot\obj\Debug\netcoreapp2.1\DiscordMafiaBot.AssemblyInfo.cs
+C:\Users\qkeh4\OneDrive\문서\PSJ\Project\DiscordMafiaBot\DiscordMafiaBot\DiscordMafiaBot\obj\Debug\netcoreapp2.1\DiscordMafiaBot.dll
+C:\Users\qkeh4\OneDrive\문서\PSJ\Project\DiscordMafiaBot\DiscordMafiaBot\DiscordMafiaBot\obj\Debug\netcoreapp2.1\DiscordMafiaBot.pdb

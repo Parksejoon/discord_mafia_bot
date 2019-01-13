@@ -2089,11 +2089,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\qkeh4\\source\\repos\\DiscordMafiaBot\\DiscordMafiaBot\\DiscordMafiaBot.csproj",
+      "projectUniqueName": "C:\\Users\\qkeh4\\OneDrive\\문서\\PSJ\\Project\\DiscordMafiaBot\\DiscordMafiaBot\\DiscordMafiaBot\\DiscordMafiaBot.csproj",
       "projectName": "DiscordMafiaBot",
-      "projectPath": "C:\\Users\\qkeh4\\source\\repos\\DiscordMafiaBot\\DiscordMafiaBot\\DiscordMafiaBot.csproj",
+      "projectPath": "C:\\Users\\qkeh4\\OneDrive\\문서\\PSJ\\Project\\DiscordMafiaBot\\DiscordMafiaBot\\DiscordMafiaBot\\DiscordMafiaBot.csproj",
       "packagesPath": "C:\\Users\\qkeh4\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\qkeh4\\source\\repos\\DiscordMafiaBot\\DiscordMafiaBot\\obj\\",
+      "outputPath": "C:\\Users\\qkeh4\\OneDrive\\문서\\PSJ\\Project\\DiscordMafiaBot\\DiscordMafiaBot\\DiscordMafiaBot\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"

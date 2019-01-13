@@ -54,9 +54,9 @@ namespace DiscordMafiaBot
 			await Task.Delay(-1);
 		}
 
-		private async Task Client_Log(LogMessage Message)
+		private async Task Client_Log(LogMessage message)
 		{
-			Console.WriteLine($"{DateTime.Now} at {Message.Source}] {Message.Message}");
+			Console.WriteLine($"{DateTime.Now} at {message.Source}] {message.Message}");
 		}
 
 		private async Task Client_Ready()
@@ -64,9 +64,22 @@ namespace DiscordMafiaBot
 			await client.SetGameAsync("Mafia Bot - test", "", ActivityType.Playing);
 		}
 
-		private async Task Client_MessageReceived(SocketMessage arg)
+		private async Task Client_MessageReceived(SocketMessage messageParam)
 		{
-			//Configure the commands
+			var message = messageParam as SocketUserMessage;
+			var context = new SocketCommandContext(client, message);
+
+			if (context.Message == null || context.Message.Content == "") return;
+			if (context.User.IsBot) return;
+
+			int argPos = 0;
+			if (!(message.HasStringPrefix("==", ref argPos) || message.HasMentionPrefix(client.CurrentUser, ref argPos))) return;
+
+			var result = await commands.ExecuteAsync(context, argPos, services, MultiMatchHandling.Best);
+			if (!result.IsSuccess)
+			{
+				Console.WriteLine($"{DateTime.Now} at Commands] Something went wrong with executing a command. Text: {context.Message.Content} | Error: {result.ErrorReason}");
+			}
 		}
 	}
 

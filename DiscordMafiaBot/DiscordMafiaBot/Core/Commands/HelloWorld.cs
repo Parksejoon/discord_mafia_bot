@@ -11,7 +11,7 @@ namespace DiscordMafiaBot.Core.Commands
 	public class HelloWorld : ModuleBase<SocketCommandContext>
 	{
 		[Command("hello"), Alias("helloworld", "world"), Summary("Hello World command")]
-		public async Task Mafia()
+		public async Task Hello()
 		{
 			await Context.Channel.SendMessageAsync("Fuck You");
 		}

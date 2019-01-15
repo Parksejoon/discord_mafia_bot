@@ -2,15 +2,43 @@
 using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
+
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DiscordMafiaBot
 {
+	public struct Player
+	{
+		public ulong userId;
+	}
+
+	public class Key
+	{
+		public string name;
+		public Key(string n) { name = n; }
+
+		public override int GetHashCode()
+		{
+			if (name == null) return 0;
+			return name.GetHashCode();
+		}
+
+		public override bool Equals(object obj)
+		{
+			Key other = obj as Key;
+			return other != null && other.name == this.name;
+		}
+	}
+
 	class Program
 	{
+		public static ConcurrentDictionary<Key, Player> playerList = new ConcurrentDictionary<Key, Player>();
+
 		private DiscordSocketClient client;
 		private CommandService commands;
 		private IServiceProvider services;

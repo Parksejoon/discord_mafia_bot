@@ -2,7 +2,6 @@
 using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
-using System.Collections.Concurrent;
 
 using Discord;
 using Discord.Commands;
@@ -12,15 +11,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace DiscordMafiaBot
 {
-	public class Player
-	{
-		public string job = null;
-	}
-
 	class Program
 	{
-		public static ConcurrentDictionary<ulong, Player> playerList = new ConcurrentDictionary<ulong, Player>();
-
 		private DiscordSocketClient client;
 		private CommandService commands;
 		private IServiceProvider services;

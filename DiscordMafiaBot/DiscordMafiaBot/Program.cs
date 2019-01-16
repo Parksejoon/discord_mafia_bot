@@ -12,32 +12,14 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace DiscordMafiaBot
 {
-	public struct Player
+	public class Player
 	{
-		public ulong userId;
-	}
-
-	public class Key
-	{
-		public string name;
-		public Key(string n) { name = n; }
-
-		public override int GetHashCode()
-		{
-			if (name == null) return 0;
-			return name.GetHashCode();
-		}
-
-		public override bool Equals(object obj)
-		{
-			Key other = obj as Key;
-			return other != null && other.name == this.name;
-		}
+		public string job = null;
 	}
 
 	class Program
 	{
-		public static ConcurrentDictionary<Key, Player> playerList = new ConcurrentDictionary<Key, Player>();
+		public static ConcurrentDictionary<ulong, Player> playerList = new ConcurrentDictionary<ulong, Player>();
 
 		private DiscordSocketClient client;
 		private CommandService commands;
@@ -101,7 +83,7 @@ namespace DiscordMafiaBot
 			if (context.User.IsBot) return;
 
 			int argPos = 0;
-			if (!(message.HasStringPrefix("==", ref argPos) || message.HasMentionPrefix(client.CurrentUser, ref argPos))) return;
+			if (!(message.HasStringPrefix("s.", ref argPos) || message.HasMentionPrefix(client.CurrentUser, ref argPos))) return;
 
 			var result = await commands.ExecuteAsync(context, argPos, services, MultiMatchHandling.Best);
 			if (!result.IsSuccess)

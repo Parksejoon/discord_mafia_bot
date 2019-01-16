@@ -10,44 +10,31 @@ using Discord.Commands;
 
 namespace DiscordMafiaBot.Core.Commands
 {
-	public class Mafia : ModuleBase<SocketCommandContext>
+	public class PlayerList : ModuleBase<SocketCommandContext>
 	{
 		[Command("join"), Summary("Mafia join command")]
-		public async Task Join([Remainder]string input = "")
+		public async Task Join([Remainder]string input = null)
 		{
-			if (input != "")
+			if (input != null)
 			{
-				await JoinPlayer(input, 0);
+				ulong userId = ConvertUserId(input);
+
+				if (userId == 0)
+				{
+					await Context.Channel.SendMessageAsync("<@" + Context.User.Id + ">님! 명령어를 잘못 치신것 같은데요?");
+				}
+				else
+				{
+					await JoinPlayer(userId);
+				}
 			}
 			else
 			{
-				await JoinPlayer(Context.User.Username, Context.User.Id);
-
+				await JoinPlayer(Context.User.Id);
 			}
 		}
 
-		private async Task JoinPlayer(string playerName, ulong userId)
-		{
-			Key key = new Key(playerName);
-
-			if (!Program.playerList.ContainsKey(key))
-			{
-				Player player = new Player();
-				player.userId = userId;
-
-				Program.playerList.TryAdd(key, player);
-				
-
-				await Context.Channel.SendMessageAsync(playerName + "님을 리스트 등록에 **성공**하였습니다.");
-			}
-			else
-			{
-				await Context.Channel.SendMessageAsync(playerName + "님은 **이미 등록되어** 있습니다.");
-			}
-			
-		}
-
-		[Command("show list"), Summary("Mafia show list command")]
+		[Command("list"), Summary("Mafia show list command")]
 		private async Task ShowList()
 		{
 			EmbedBuilder embed = new EmbedBuilder();
@@ -57,11 +44,39 @@ namespace DiscordMafiaBot.Core.Commands
 
 			foreach (var keyValuePair in Program.playerList)
 			{
-				embed.Description += num.ToString() + ". " + keyValuePair.Key.name + "\n";
+				embed.Description += num.ToString() + ". <@" + keyValuePair.Key + ">\n";
 				num++;
 			}
 
 			await Context.Channel.SendMessageAsync("", false, embed.Build());
+		}
+
+		private async Task JoinPlayer(ulong userId)
+		{
+			if (!Program.playerList.ContainsKey(userId))
+			{
+				Player player = new Player();
+
+				Program.playerList.TryAdd(userId, player);
+
+				await Context.Channel.SendMessageAsync("<@" + userId + ">님을 리스트 등록에 **성공**하였습니다.");
+			}
+			else
+			{
+				await Context.Channel.SendMessageAsync("<@" + userId + ">님은 **이미 등록되어** 있습니다.");
+			}
+		}
+
+		private ulong ConvertUserId(string input)
+		{
+			if (input.Length != 21)
+			{
+				return 0;
+			}
+
+			string userId = input.Substring(2, 18);
+
+			return Convert.ToUInt64(userId);
 		}
 	}
 }

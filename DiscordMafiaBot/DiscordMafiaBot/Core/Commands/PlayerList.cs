@@ -6,6 +6,7 @@ using System.Collections.Generic;
 
 using Discord;
 using Discord.Commands;
+using Discord.WebSocket;
 
 namespace DiscordMafiaBot.Core.Commands
 {
@@ -15,6 +16,20 @@ namespace DiscordMafiaBot.Core.Commands
 		[Command("join"), Summary("Mafia join command")]
 		public async Task Join([Remainder]string input = null)
 		{
+			// DM에서 사용 불가능
+			if (Context.Channel.GetType() == typeof(SocketDMChannel))
+			{
+				await WrongCommandNotDM();
+				return;
+			}
+
+			// 레디 상태일때만 사용 가능
+			if (gameStatus != GameStatus.Ready)
+			{
+				await WrongCommandTiming();
+				return;
+			}
+
 			if (input != null)
 			{
 				ulong userId = ConvertUserId(input);
@@ -45,8 +60,22 @@ namespace DiscordMafiaBot.Core.Commands
 
 		// 참며 해제 명령어 s.out / s.out @player
 		[Command("out"), Summary("Mafia leave command")]
-		public async Task leave([Remainder]string input = null)
+		public async Task Leave([Remainder]string input = null)
 		{
+			// DM에서 사용 불가능
+			if (Context.Channel.GetType() == typeof(SocketDMChannel))
+			{
+				await WrongCommandNotDM();
+				return;
+			}
+
+			// 레디 상태일때만 사용 가능
+			if (gameStatus != GameStatus.Ready)
+			{
+				await WrongCommandTiming();
+				return;
+			}
+
 			if (input != null)
 			{
 				ulong userId = ConvertUserId(input);
@@ -78,16 +107,22 @@ namespace DiscordMafiaBot.Core.Commands
 		// 플레이어 참여
 		private async Task JoinPlayer(ulong userId)
 		{
+			//if (Context.Guild.GetUser(userId).Status == UserStatus.Offline)
+			//{
+			//	await Context.Channel.SendMessageAsync("<@" + Context.User.Id + ">님! 쉴사람은 쉬자구요?");
+			//	return;
+			//}
+
 			if (!playerList.ContainsKey(userId))
 			{
 				Player player = new Player();
 				playerList.TryAdd(userId, player);
 
-				await Context.Channel.SendMessageAsync("<@" + userId + ">님을 리스트 등록에 **성공**하였습니다.");
+				await Context.Channel.SendMessageAsync("<@" + userId + ">님을 성공적으로 등록시켰습니다!");
 			}
 			else
 			{
-				await Context.Channel.SendMessageAsync("<@" + userId + ">님은 **이미 등록되어** 있습니다.");
+				await Context.Channel.SendMessageAsync("<@" + Context.User.Id + ">님! 두번 등록은 안된다구요?");
 			}
 		}
 
@@ -99,12 +134,12 @@ namespace DiscordMafiaBot.Core.Commands
 				Player player = new Player();
 				playerList.TryRemove(userId, out player);
 
-				await Context.Channel.SendMessageAsync("<@" + userId + ">님을 리스트에서 **삭제**하였습니다.");
+				await Context.Channel.SendMessageAsync("<@" + userId + ">님을 리스트에서 삭제했습니다!");
 			}
 			else
 			{
 
-				await Context.Channel.SendMessageAsync("<@" + userId + ">님은 **등록되어있지 않습니다.** ");
+				await Context.Channel.SendMessageAsync("<@" + Context.User.Id + ">님! 리스트에도 없는사람을 어쩌실려구요!");
 			}
 		}
 	}

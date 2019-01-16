@@ -63,7 +63,7 @@ namespace DiscordMafiaBot
 
 		private async Task Client_Ready()
 		{
-			await client.SetGameAsync("Mafia Bot - test", "", ActivityType.Playing);
+			await client.SetGameAsync("Dead by Daylight", "", ActivityType.Playing);
 		}
 
 		private async Task Client_MessageReceived(SocketMessage messageParam)

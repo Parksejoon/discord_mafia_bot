@@ -11,19 +11,6 @@ namespace DiscordMafiaBot.Core.Commands
 {
 	public class HelloWorld : Mafia
 	{
-		[Command("start")]
-		public async Task TimerStart()
-		{
-			isTimerRunning = true;
-			await Timer(10);
-		}
-
-		[Command("stop")]
-		public async Task TimerStop()
-		{
-			isTimerRunning = false;
-		}
-
 		[Command("embed"), Summary("Embed test command")]
 		public async Task Embed([Remainder]string Input = "None")
 		{

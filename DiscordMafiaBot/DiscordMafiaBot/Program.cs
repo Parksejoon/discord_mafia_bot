@@ -49,7 +49,7 @@ namespace DiscordMafiaBot
 			{
 				Token = ReadToken.ReadToEnd();
 			}
-
+			
 			await client.LoginAsync(TokenType.Bot, Token);
 			await client.StartAsync();
 

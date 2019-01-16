@@ -4,16 +4,24 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 
 using Discord;
+using Discord.Rest;
 using Discord.Commands;
 
 namespace DiscordMafiaBot.Core.Commands
 {
-	public class HelloWorld : ModuleBase<SocketCommandContext>
+	public class HelloWorld : Mafia
 	{
-		[Command("hello"), Alias("helloworld", "world"), Summary("Hello World command")]
-		public async Task Hello()
+		[Command("start")]
+		public async Task TimerStart()
 		{
-			await Context.Channel.SendMessageAsync("Fuck You");
+			isTimerRunning = true;
+			await Timer(10);
+		}
+
+		[Command("stop")]
+		public async Task TimerStop()
+		{
+			isTimerRunning = false;
 		}
 
 		[Command("embed"), Summary("Embed test command")]

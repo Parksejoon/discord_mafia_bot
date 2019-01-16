@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <Folder Include="Core\Data\" />
+    <Folder Include="Core\Moderation\" />
     <Folder Include="Resources\Database\" />
     <Folder Include="Resources\Datatype\" />
     <Folder Include="Resources\Extensions\" />

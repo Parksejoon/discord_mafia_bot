@@ -26,6 +26,12 @@ namespace DiscordMafiaBot.Core.Commands
 				}
 				else
 				{
+					if (Context.Guild.GetUser(userId).IsBot)
+					{
+						await WrongCommandBot();
+						return;
+					}
+
 					await JoinPlayer(userId);
 				}
 			}
@@ -34,7 +40,7 @@ namespace DiscordMafiaBot.Core.Commands
 				await JoinPlayer(Context.User.Id);
 			}
 
-			await ShowList();
+			await ShowStatus();
 		}
 
 		// 참며 해제 명령어 s.out / s.out @player
@@ -52,6 +58,12 @@ namespace DiscordMafiaBot.Core.Commands
 				}
 				else
 				{
+					if (Context.Guild.GetUser(userId).IsBot)
+					{
+						await WrongCommandBot();
+						return;
+					}
+
 					await LeavePlayer(userId);
 				}
 			}
@@ -60,25 +72,7 @@ namespace DiscordMafiaBot.Core.Commands
 				await LeavePlayer(Context.User.Id);
 			}
 
-			await ShowList();
-		}
-
-		// 리스트 확인 명령어 s.list
-		[Command("list"), Summary("Mafia show list command")]
-		private async Task ShowList()
-		{
-			EmbedBuilder embed = new EmbedBuilder();
-			int num = 1;
-
-			embed.WithColor(252, 138, 136);
-
-			foreach (var keyValuePair in playerList)
-			{
-				embed.Description += num.ToString() + ". <@" + keyValuePair.Key + ">\n";
-				num++;
-			}
-
-			await Context.Channel.SendMessageAsync("", false, embed.Build());
+			await ShowStatus();
 		}
 
 		// 플레이어 참여
@@ -112,18 +106,6 @@ namespace DiscordMafiaBot.Core.Commands
 
 				await Context.Channel.SendMessageAsync("<@" + userId + ">님은 **등록되어있지 않습니다.** ");
 			}
-		}
-
-		private ulong ConvertUserId(string input)
-		{
-			if (input.Length != 21)
-			{
-				return 0;
-			}
-
-			string userId = input.Substring(2, 18);
-
-			return Convert.ToUInt64(userId);
 		}
 	}
 }

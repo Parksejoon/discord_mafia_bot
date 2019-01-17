@@ -19,14 +19,14 @@ namespace DiscordMafiaBot.Core.Commands
 			// DM에서 사용 불가능
 			if (Context.Channel.GetType() == typeof(SocketDMChannel))
 			{
-				await WrongCommandNotDM();
+				await WrongCommand(CommandType.NotDM);
 				return;
 			}
 
 			// 레디 상태일때만 사용 가능
 			if (gameStatus != GameStatus.Ready)
 			{
-				await WrongCommandTiming();
+				await WrongCommand(CommandType.Timing);
 				return;
 			}
 
@@ -34,16 +34,18 @@ namespace DiscordMafiaBot.Core.Commands
 			{
 				ulong userId = ConvertUserId(input);
 
+				// 유저 아이디가 올바르지 않음
 				if (userId == 0)
 				{
-					await WrongCommand();
+					await WrongCommand(CommandType.Original);
 					return;
 				}
 				else
 				{
+					// 고른 유저가 봇임
 					if (Context.Guild.GetUser(userId).IsBot)
 					{
-						await WrongCommandBot();
+						await WrongCommand(CommandType.ChooseBot);
 						return;
 					}
 
@@ -54,8 +56,6 @@ namespace DiscordMafiaBot.Core.Commands
 			{
 				await JoinPlayer(Context.User.Id);
 			}
-
-			await ShowStatus();
 		}
 
 		// 참며 해제 명령어 s.out / s.out @player
@@ -65,14 +65,14 @@ namespace DiscordMafiaBot.Core.Commands
 			// DM에서 사용 불가능
 			if (Context.Channel.GetType() == typeof(SocketDMChannel))
 			{
-				await WrongCommandNotDM();
+				await WrongCommand(CommandType.NotDM);
 				return;
 			}
 
 			// 레디 상태일때만 사용 가능
 			if (gameStatus != GameStatus.Ready)
 			{
-				await WrongCommandTiming();
+				await WrongCommand(CommandType.Timing);
 				return;
 			}
 
@@ -80,16 +80,18 @@ namespace DiscordMafiaBot.Core.Commands
 			{
 				ulong userId = ConvertUserId(input);
 
+				// 유저 아이디가 올바르지 않음
 				if (userId == 0)
 				{
-					await WrongCommand();
+					await WrongCommand(CommandType.Original);
 					return;
 				}
 				else
 				{
+					// 고른 유저가 봇임
 					if (Context.Guild.GetUser(userId).IsBot)
 					{
-						await WrongCommandBot();
+						await WrongCommand(CommandType.ChooseBot);
 						return;
 					}
 
@@ -107,15 +109,16 @@ namespace DiscordMafiaBot.Core.Commands
 		// 플레이어 참여
 		private async Task JoinPlayer(ulong userId)
 		{
-			//if (Context.Guild.GetUser(userId).Status == UserStatus.Offline)
-			//{
-			//	await Context.Channel.SendMessageAsync("<@" + Context.User.Id + ">님! 쉴사람은 쉬자구요?");
-			//	return;
-			//}
+			if (Context.Guild.GetUser(userId).Status == UserStatus.Offline)
+			{
+				await Context.Channel.SendMessageAsync("<@" + Context.User.Id + ">님! 쉴사람은 쉬자구요?");
+				return;
+			}
 
 			if (!playerList.ContainsKey(userId))
 			{
 				Player player = new Player();
+				player.name = Context.Guild.GetUser(userId).Username;
 				playerList.TryAdd(userId, player);
 
 				await Context.Channel.SendMessageAsync("<@" + userId + ">님을 성공적으로 등록시켰습니다!");

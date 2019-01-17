@@ -11,16 +11,33 @@ namespace DiscordMafiaBot.Core.Commands
 {
 	public class HelloWorld : Mafia
 	{
-		[Command("embed"), Summary("Embed test command")]
-		public async Task Embed([Remainder]string Input = "None")
+		[Command("help"), Summary("Show commands")]
+		public async Task Help([Remainder]string Input = "None")
 		{
 			EmbedBuilder embed = new EmbedBuilder();
-			embed.WithAuthor("Test embed", Context.User.GetAvatarUrl());
-			embed.WithColor(40, 0, 10);
-			embed.WithFooter("The footer of the embed", Context.Guild.Owner.GetAvatarUrl());
-			embed.Description = "This is a **dummy** description, with a cool link.\n" +
-								"[This is my favorite wesite](https://www.naver.com/)";
-			embed.AddField("User input:", Input, true);
+			EmbedFieldBuilder embedField;
+			embed.WithColor(color);
+
+			embedField = new EmbedFieldBuilder();
+			embedField.Name = "게임 설정 명령어";
+			embedField.Value = "`s.join / s.join @USER`\n" +
+								"`s.out / s.out @USER`\n" +
+								"`s.status`";
+			embed.Fields.Add(embedField);
+
+			embedField = new EmbedFieldBuilder();
+			embedField.Name = "게임 플레이 명령어";
+			embedField.Value = "`s.start`\n" +
+								"`s.agree / s.disagree`\n" +
+								"`s.live`\n" +
+								"`s.skip`";
+			embed.Fields.Add(embedField);
+
+			embedField = new EmbedFieldBuilder();
+			embedField.Name = "DM 명령어";
+			embedField.Value = "`s.shot PLAYER_NUM`\n" +
+								"`s.vote PLAYER_NUM`\n";
+			embed.Fields.Add(embedField);
 
 			await Context.Channel.SendMessageAsync("", false, embed.Build());
 		}

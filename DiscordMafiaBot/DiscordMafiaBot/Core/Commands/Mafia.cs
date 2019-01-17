@@ -11,20 +11,40 @@ using Discord.WebSocket;
 
 namespace DiscordMafiaBot.Core.Commands
 {
+	public class Scene
+	{
+		public ulong doctorSaver = 0;
+		public ulong mafiaKill = 0;
+		public KeyValuePair<ulong, ulong> wolfPick = new KeyValuePair<ulong, ulong>(0, 0);		// key = 늑대 value = 늑대가 고른 사람
+		public KeyValuePair<ulong, ulong> copCheck = new KeyValuePair<ulong, ulong>(0, 0);      // key = 경찰 value = 경찰 지목자
+		public KeyValuePair<ulong, ulong> spyCheck = new KeyValuePair<ulong, ulong>(0, 0);		// key = 스파이 value = 스파이 지목자
+	}
+
 	public class Times
 	{
 		public int day = 300;
-		public int vote = 60;
-		public int judge = 60;
-		public int night = 120;
+		public int vote = 300;//60;
+		public int judge = 300;//60;
+		public int night = 300;//180;
 	}
-
-
+	
 	public class Player
 	{
 		public JobType job = 0;
+		public string name = "이게보인다면 좆된거에요 개발자한테 말하세요";
 		public string ability = null;
 		public bool isDead = false;
+	}
+
+	public enum CommandType
+	{
+		Original,
+		ChooseBot,
+		Timing,
+		NotDM,
+		DM,
+		ChooseDiePlayer,
+		DiePlayer
 	}
 
 	public enum JobType
@@ -50,14 +70,19 @@ namespace DiscordMafiaBot.Core.Commands
 	public class Mafia : ModuleBase<SocketCommandContext>
 	{
 		public static ConcurrentDictionary<ulong, Player> playerList = new ConcurrentDictionary<ulong, Player>();
+		public static ConcurrentDictionary<ulong, ulong> voteList;	// 투표 리스트 <투표한 플레이어, key가 투표한 플레이어>
+		public static List<ulong> livePlayer;						// 남은 플레이어들
 		public static Color color = new Color(252, 138, 136);		// 시그니처 컬러
 		public static GameStatus gameStatus = GameStatus.Ready;     // 게임 상태
 		public static Times times = new Times();					// 시간 설정
 		public static ISocketMessageChannel mainChannel;			// 메인 채널
-		public static SocketGuild mainGuild;						// 메인 그룹
-		public static bool isTimerStop = false;						// 타이머 정지 플래그
-		
-		// 상태 확인 명령어 s.state
+		public static bool isTimerStop = false;                     // 타이머 정지 플래그
+		public static Scene currentScene;                           // 현재 씬
+		public static int playerCount;                              // 살아있는 플레이어 수
+		public static int currentDay;                               // 게임 일수
+		public static bool wolfLink;								// 늑대가 접선했는지
+
+		// 상태 확인 명령어
 		[Command("status"), Summary("Mafia show state command")]
 		public async Task ShowStatus()
 		{
@@ -77,19 +102,24 @@ namespace DiscordMafiaBot.Core.Commands
 			embedField.Value = "게임 대기중..";
 			embed.Fields.Add(embedField);
 
+			// 시간
+			embedField = new EmbedFieldBuilder();
+			embedField.Name = "시간 설정";
+
+			embedField.Value += "**낮**\n`" + ConvertTime(times.day) + "`\n\n";
+			embedField.Value += "**투표**\n`" + ConvertTime(times.vote) + "`\n\n";
+			embedField.Value += "**찬반 투표**\n`" + ConvertTime(times.judge) + "`\n\n";
+			embedField.Value += "**밤**\n`" + ConvertTime(times.night) + "`\n\n";
+
+			embed.Fields.Add(embedField);
+
 			// 현재 플레이어 목록
 			embedField = new EmbedFieldBuilder();
 			embedField.Name = "플레이어 목록";
-
-			int num = 1;
+			
 			foreach (var keyValuePair in playerList)
 			{
-				embedField.Value += num.ToString() + ". <@" + keyValuePair.Key + ">\n";
-				num++;
-			}
-			if (num == 1)
-			{
-				embedField.Value = "아무도 없는디요?";
+				embedField.Value += "<@" + keyValuePair.Key + "> ";
 			}
 			embed.Fields.Add(embedField);
 
@@ -97,39 +127,82 @@ namespace DiscordMafiaBot.Core.Commands
 			await Context.Channel.SendMessageAsync("", false, embed.Build());
 		}
 
+		// 생존자 확인 명령어
+		[Command("live")]
+		public async Task LivePlayerList()
+		{
+			// 게임 플레이중에만 사용 가능
+			if (gameStatus == GameStatus.Ready)
+			{
+				await WrongCommand(CommandType.Timing);
+				return;
+			}
+
+			EmbedBuilder embed = new EmbedBuilder();
+			embed.WithColor(color);
+
+			EmbedFieldBuilder embedField = new EmbedFieldBuilder();
+			embedField.Name = "살아있는 플레이어 목록\n" +
+								"플레이어_번호. @player";
+			int num = 1;
+
+			foreach (var player in livePlayer)
+			{
+				Console.WriteLine(player);
+				embedField.Value += num.ToString() + ". <@" + player + ">\n";
+				num++;
+			}
+			embed.Fields.Add(embedField);
+
+			await Context.Channel.SendMessageAsync("", false, embed.Build());
+		}
+
 		// 잘못된 명령어
-		protected async Task WrongCommand()
+		protected async Task WrongCommand(CommandType commandType)
 		{
-			await Context.Channel.SendMessageAsync("<@" + Context.User.Id + ">님! 명령어를 잘못 치신것 같은데요?");
-		}
-
-		// 잘못된 명령어 - 봇을 대상으로 지정
-		protected async Task WrongCommandBot()
-		{
-			await Context.Channel.SendMessageAsync("<@" + Context.User.Id + ">님! 마피아를 봇전으로 하는건 슬프지 않을까요?");
-		}
-
-		// 잘못된 명령어 - 적절하지 않은 시기의 명령어
-		protected async Task WrongCommandTiming()
-		{
-			await Context.Channel.SendFileAsync("<@" + Context.User.Id + ">님! 지금 쓰기에는 조금 부적절한것 같은데요?");
-		}
-
-		// 잘못된 명령어 - 채널 전용 명령어
-		protected async Task WrongCommandNotDM()
-		{
-			await Context.Channel.SendMessageAsync("<@" + Context.User.Id + ">님! 그 명령어는 DM에서 치면 안되요!");
-		}
-
-		// 잘못된 명령어 - 잘못된 채널에서 명령어
-		protected async Task WrongCommandDM()
-		{
-			await Context.Channel.SendMessageAsync("<@" + Context.User.Id + ">님! 그 명령어는 DM에서만 사용 가능해요!");
+			switch (commandType)
+			{	
+				case CommandType.Original:
+					// 잘못된 명령어 - 일반
+					await Context.Channel.SendMessageAsync("<@" + Context.User.Id + ">님! 명령어를 잘못 치신것 같은데요?");
+					break;
+				case CommandType.ChooseBot:
+					// 잘못된 명령어 - 봇을 대상으로 지정
+					await Context.Channel.SendMessageAsync("<@" + Context.User.Id + ">님! 마피아를 봇전으로 하는건 슬프지 않을까요?");
+					break;
+				case CommandType.Timing:
+					// 잘못된 명령어 - 적절하지 않은 시기의 명령어
+					await Context.Channel.SendMessageAsync("<@" + Context.User.Id + ">님! 지금 쓰기에는 조금 부적절한것 같은데요?");
+					break;
+				case CommandType.NotDM:
+					// 잘못된 명령어 - 채널 전용 명령어
+					await Context.Channel.SendMessageAsync("<@" + Context.User.Id + ">님! 그 명령어는 DM에서 치면 안되요!");
+					break;
+				case CommandType.DM:
+					// 잘못된 명령어 - 잘못된 채널에서 명령
+					await Context.Channel.SendMessageAsync("<@" + Context.User.Id + ">님! 그 명령어는 DM에서만 사용 가능해요!");
+					break;
+				case CommandType.ChooseDiePlayer:
+					// 잘못된 명령어 - 죽은사람 지목
+					await Context.Channel.SendMessageAsync("그분은 죽은사람이에요..");
+					break;
+				case CommandType.DiePlayer:
+					// 잘못된 명령어 - 죽은사람
+					await Context.Channel.SendMessageAsync("<@" + Context.User.Id + ">님! 죽었으면좀 가만히 있으라구요!");
+					break;
+				default:
+					break;
+			}
 		}
 
 		// DM보내기
 		protected async Task SendDM(ulong userId, string message)
 		{
+			if (userId == 0)
+			{
+				return;
+			}
+
 			await Context.Guild.GetUser(userId).SendMessageAsync(message);
 		}
 

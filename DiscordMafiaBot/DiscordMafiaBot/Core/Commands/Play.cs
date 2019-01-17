@@ -51,7 +51,7 @@ namespace DiscordMafiaBot.Core.Commands
 			}
 
 			await ShowStatus();
-			await Context.Channel.SendMessageAsync("지금부터 역할을 나누어드리겠습니다! DM을 확인해주세요!");
+			await Context.Channel.SendMessageAsync("지금부터 역할을 나누어드리겠습니다!\n DM을 확인해주세요!");
 
 			// 직업 배정을 위해 리스트로 옮김
 			nojobPlayer = new List<ulong>();
@@ -80,6 +80,12 @@ namespace DiscordMafiaBot.Core.Commands
 			// 국회의원 1
 			if (playerCount >= 7) { SetJob(JobType.MOCongress, 1); }
 
+			//{ SetJob(JobType.Mafia, 1); mafiaCount = 1; }
+			//{ SetJob(JobType.Wolf, 1); }
+			//{ SetJob(JobType.MOCongress, 1); }
+			//SetJob(JobType.Cop, 1);
+			//SetJob(JobType.Doctor, 1);
+
 			// 직업 알려주기
 			await SendJob();
 
@@ -100,6 +106,18 @@ namespace DiscordMafiaBot.Core.Commands
 		[Command("skip")]
 		public async Task Skip()
 		{
+
+		}
+
+		// 즉시 스킵
+		[Command("superskip")]
+		public async Task SuperSkip()
+		{
+			if (Context.User.Id != 254872929395802112)
+			{
+				await Context.Channel.SendMessageAsync("이 명령어는 디버깅용으로 만들어 졌습니다.");
+			}
+
 			isTimerStop = true;
 		}
 
@@ -194,7 +212,8 @@ namespace DiscordMafiaBot.Core.Commands
 		{
 			gameStatus = GameStatus.Day;
 
-			await Context.Channel.SendMessageAsync("모두들! 지금은 낮입니다! 토론을 진행해주세요!");
+			await Context.Channel.SendMessageAsync("모두들! 지금은 낮입니다!\n" +
+													"토론을 진행해주세요!");
 			await Timer(times.day);
 		}
 
@@ -207,7 +226,8 @@ namespace DiscordMafiaBot.Core.Commands
 			// 시간설정
 			gameStatus = GameStatus.Vote;
 
-			await Context.Channel.SendMessageAsync("이제부터 투표시간입니다. 봇에게 DM으로 `s.vote 플레이어_번호`를 입력해주세요!");
+			await Context.Channel.SendMessageAsync("이제부터 투표시간입니다.\n" +
+													"봇에게 DM으로 `s.vote 플레이어_번호`를 입력해주세요!");
 			await Timer(times.vote);
 			
 			// 집계
@@ -253,7 +273,8 @@ namespace DiscordMafiaBot.Core.Commands
 			}
 			else
 			{
-				await Context.Channel.SendMessageAsync("<@" + judgeTarget + ">님이 " + voteReult[bigestUser] + "표로 가장 많은 표를 받았지만 과반수를 넘지 않아 투표가 무효화 되었습니다.");
+				await Context.Channel.SendMessageAsync("<@" + judgeTarget + ">님이 " + voteReult[bigestUser] + "표로 가장 많은 표를 받았지만\n" +
+														"과반수를 넘지 않아 투표가 무효화 되었습니다.");
 				judgeTarget = 0;
 			}
 		}
@@ -269,7 +290,8 @@ namespace DiscordMafiaBot.Core.Commands
 			// 시간 설정
 			gameStatus = GameStatus.Judge;
 
-			await Context.Channel.SendMessageAsync("<@" + judgeTarget + ">님의 처형에 대해 찬반 투표가 진행됩니다. 현재 채널에 `s.agree` 또는 `s.disagree`를 입력해주세요!");
+			await Context.Channel.SendMessageAsync("<@" + judgeTarget + ">님의 처형에 대해 찬반 투표가 진행됩니다.\n" +
+													"현재 채널에 `s.agree` 또는 `s.disagree`를 입력해주세요!");
 			await Timer(times.judge);
 
 			EmbedBuilder embed = new EmbedBuilder();
@@ -527,7 +549,7 @@ namespace DiscordMafiaBot.Core.Commands
 					await NobodyDead();
 				}
 				// 늑대인간을 지목했는지
-				else if (mafiaCount != 0 && playerList[currentScene.mafiaKill].job == JobType.Wolf)
+				else if (mafiaCount != 0 && playerList[userId].job == JobType.Wolf)
 				{
 					LinkMafia(FindMafia(), currentScene.mafiaKill);
 					wolfLink = true;

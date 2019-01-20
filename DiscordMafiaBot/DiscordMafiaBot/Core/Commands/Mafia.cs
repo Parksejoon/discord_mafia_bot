@@ -71,16 +71,14 @@ namespace DiscordMafiaBot.Core.Commands
 	{
 		public static ConcurrentDictionary<ulong, Player> playerList = new ConcurrentDictionary<ulong, Player>();
 		public static ConcurrentDictionary<ulong, ulong> voteList;	// 투표 리스트 <투표한 플레이어, key가 투표한 플레이어>
-		public static List<ulong> livePlayer;						// 남은 플레이어들
 		public static Color color = new Color(252, 138, 136);		// 시그니처 컬러
 		public static GameStatus gameStatus = GameStatus.Ready;     // 게임 상태
 		public static Times times = new Times();					// 시간 설정
-		public static ISocketMessageChannel mainChannel;			// 메인 채널
+		public static ISocketMessageChannel mainChannel;            // 메인 채널
+		public static SocketGuild mainGuild;						// 메인 길드
 		public static bool isTimerStop = false;                     // 타이머 정지 플래그
 		public static Scene currentScene;                           // 현재 씬
-		public static int playerCount;                              // 살아있는 플레이어 수
-		public static int currentDay;                               // 게임 일수
-		public static bool wolfLink;								// 늑대가 접선했는지
+		public static GameData gameData;							// 게임 데이터들
 
 		// 상태 확인 명령어
 		[Command("status"), Summary("Mafia show state command")]
@@ -146,7 +144,7 @@ namespace DiscordMafiaBot.Core.Commands
 								"플레이어_번호. @player";
 			int num = 1;
 
-			foreach (var player in livePlayer)
+			foreach (var player in gameData.livePlayer)
 			{
 				Console.WriteLine(player);
 				embedField.Value += num.ToString() + ". <@" + player + ">\n";
@@ -196,7 +194,7 @@ namespace DiscordMafiaBot.Core.Commands
 		}
 
 		// DM보내기
-		protected async Task SendDM(ulong userId, string message)
+		public async Task SendDM(ulong userId, string message)
 		{
 			if (userId == 0)
 			{

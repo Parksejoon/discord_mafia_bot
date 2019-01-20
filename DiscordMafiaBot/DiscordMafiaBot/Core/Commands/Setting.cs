@@ -29,6 +29,7 @@ namespace DiscordMafiaBot.Core.Commands
 			}
 
 			mainChannel = Context.Channel;
+			mainGuild = Context.Guild;
 
 			await Context.Channel.SendMessageAsync("메인 채널이 `#" + mainChannel + "` 채널로 설정되었습니다.");
 		}

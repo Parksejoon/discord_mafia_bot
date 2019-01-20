@@ -12,12 +12,13 @@ namespace DiscordMafiaBot.Core.Commands
 {
 	public class Play : Mafia
 	{
-		static public ulong judgeTarget = 0;
-		static public int mafiaCount;
-		static private int agree;
-		static private int disagree;
-		static private EmbedBuilder result = new EmbedBuilder();
-		static private List<ulong> nojobPlayer;
+		public static ulong judgeTarget = 0;
+		public static int mafiaCount;
+		private static int agree;
+		private static int disagree;
+		private static EmbedBuilder result = new EmbedBuilder();
+		private static List<ulong> nojobPlayer;
+		private static List<ulong> skipPlayer;
 
 		// 시작 명령어
 		[Command("start")]
@@ -37,11 +38,11 @@ namespace DiscordMafiaBot.Core.Commands
 				return;
 			}
 
-			playerCount = playerList.Count;
+			gameData = new GameData(playerList.Count);
 
-			if (playerCount < 4)
+			if (gameData.playerCount < 4)
 			{
-				await Context.Channel.SendMessageAsync("아무리그래도 `" + playerCount + "명`은 너무 적지 않나..");
+				await Context.Channel.SendMessageAsync("아무리그래도 `" + gameData.playerCount + "명`은 너무 적지 않나..");
 				return;
 			}
 			if (mainChannel == null)
@@ -61,41 +62,32 @@ namespace DiscordMafiaBot.Core.Commands
 			}
 
 			// 마피아 1
-			if (playerCount <= 7) { SetJob(JobType.Mafia, 1); mafiaCount = 1; }
+			if (gameData.playerCount <= 7) { SetJob(JobType.Mafia, 1); mafiaCount = 1; }
 			// 마피아 2
-			else if (playerCount <= 12) { SetJob(JobType.Mafia, 2); mafiaCount = 2; }
+			else if (gameData.playerCount <= 12) { SetJob(JobType.Mafia, 2); mafiaCount = 2; }
 			// 마피아 3
 			else { SetJob(JobType.Mafia, 3); mafiaCount = 3; }
 
 			// 늑대인간 1
-			if (playerCount >= 8) { SetJob(JobType.Wolf, 1); }
+			if (gameData.playerCount >= 8) { SetJob(JobType.Wolf, 1); }
 
 			// 스파이 1
-			if (playerCount >= 6) { SetJob(JobType.Spy, 1); }
+			if (gameData.playerCount >= 6) { SetJob(JobType.Spy, 1); }
 
 			// 의사 1 경찰 1
 			SetJob(JobType.Cop, 1);
 			SetJob(JobType.Doctor, 1);
 
 			// 국회의원 1
-			if (playerCount >= 7) { SetJob(JobType.MOCongress, 1); }
-
-			//{ SetJob(JobType.Mafia, 1); mafiaCount = 1; }
-			//{ SetJob(JobType.Wolf, 1); }
-			//{ SetJob(JobType.MOCongress, 1); }
-			//SetJob(JobType.Cop, 1);
-			//SetJob(JobType.Doctor, 1);
+			if (gameData.playerCount >= 7) { SetJob(JobType.MOCongress, 1); }
 
 			// 직업 알려주기
 			await SendJob();
 
 			// 생존자 목록 갱신등의 데이터 초기화
-			wolfLink = false;
-			currentDay = 0;
-			livePlayer = new List<ulong>();
 			foreach (var keyvalue in playerList)
 			{
-				livePlayer.Add(keyvalue.Key);
+				gameData.livePlayer.Add(keyvalue.Key);
 			}
 
 			// 게임 루프 시작
@@ -106,7 +98,43 @@ namespace DiscordMafiaBot.Core.Commands
 		[Command("skip")]
 		public async Task Skip()
 		{
+			// DM에서 사용 불가능
+			if (Context.Channel.GetType() == typeof(SocketDMChannel))
+			{
+				await WrongCommand(CommandType.NotDM);
+				return;
+			}
 
+			// 게임 진행중에만 사용 가능
+			if (gameStatus == GameStatus.Ready)
+			{
+				await WrongCommand(CommandType.Timing);
+				return;
+			}
+
+			// 죽은사람 사용 불가능
+			if (playerList[Context.User.Id].isDead)
+			{
+				await WrongCommand(CommandType.DiePlayer);
+				return;
+			}
+
+			// 만약 이미 스킵을 했으면
+			if (skipPlayer.Contains(Context.User.Id))
+			{
+				await Context.Channel.SendMessageAsync("스킵 투표는 한번만 가능합니다!");
+			}
+			else
+			{
+				await Context.Channel.SendMessageAsync("<@" + Context.User.Id + ">님이 스킵 투표를 하였습니다.");
+				skipPlayer.Add(Context.User.Id);
+
+				if (skipPlayer.Count > (gameData.playerCount / 2))
+				{
+					await Context.Channel.SendMessageAsync("타이머가 스킵되었습니다.");
+					isTimerStop = true;
+				}
+			}
 		}
 
 		// 즉시 스킵
@@ -116,8 +144,9 @@ namespace DiscordMafiaBot.Core.Commands
 			if (Context.User.Id != 254872929395802112)
 			{
 				await Context.Channel.SendMessageAsync("이 명령어는 디버깅용으로 만들어 졌습니다.");
+				return;
 			}
-
+			
 			isTimerStop = true;
 		}
 
@@ -196,7 +225,7 @@ namespace DiscordMafiaBot.Core.Commands
 			while (true)
 			{
 				if (CheckGame()) { break; }
-				currentDay++;
+				gameData.currentDay++;
 				await DayTime();
 				await VoteTime();
 				if (judgeTarget != 0) { await JudgeTime(); }
@@ -210,6 +239,10 @@ namespace DiscordMafiaBot.Core.Commands
 		// 낮
 		private async Task DayTime()
 		{
+			// 초기화
+			skipPlayer = new List<ulong>();
+
+			// 시간 설정
 			gameStatus = GameStatus.Day;
 
 			await Context.Channel.SendMessageAsync("모두들! 지금은 낮입니다!\n" +
@@ -221,6 +254,7 @@ namespace DiscordMafiaBot.Core.Commands
 		private async Task VoteTime()
 		{
 			// 초기화
+			skipPlayer = new List<ulong>();
 			voteList = new ConcurrentDictionary<ulong, ulong>();
 
 			// 시간설정
@@ -267,7 +301,7 @@ namespace DiscordMafiaBot.Core.Commands
 
 			judgeTarget = bigestUser;
 			// 결과
-			if (voteReult[bigestUser] >= (playerCount / 2) + 1)
+			if (voteReult[bigestUser] >= (gameData.playerCount / 2) + 1)
 			{
 				await Context.Channel.SendMessageAsync("<@" + judgeTarget + ">님이 " + voteReult[bigestUser] + "표로 가장 많은 표를 받아 단두대에 올라섰습니다.");
 			}
@@ -283,6 +317,7 @@ namespace DiscordMafiaBot.Core.Commands
 		private async Task JudgeTime()
 		{
 			// 초기화
+			skipPlayer = new List<ulong>();
 			agree = 0;
 			disagree = 0;
 			voteList = new ConcurrentDictionary<ulong, ulong>();
@@ -314,7 +349,7 @@ namespace DiscordMafiaBot.Core.Commands
 			embed.Description += "찬성 `" + agree + "`표\n";
 			embed.Description += "반대 `" + disagree + "`표\n";
 
-			if (agree >= ((playerCount - 1) / 2) + 1)
+			if (agree >= ((gameData.playerCount - 1) / 2) + 1)
 			{
 				if (playerList[judgeTarget].job == JobType.MOCongress)
 				{
@@ -335,53 +370,11 @@ namespace DiscordMafiaBot.Core.Commands
 			await Context.Channel.SendMessageAsync("", false, embed.Build());
 		}
 
-		// 게임 상황 체크
-		private bool CheckGame()
-		{
-			int mafiaVote = 0;
-			int citizenVote = 0;
-
-			foreach (var userId in livePlayer)
-			{
-				if (playerList[userId].job >= JobType.Mafia)
-				{
-					mafiaVote++;
-				}
-				else
-				{
-					citizenVote++;
-				}
-			}
-
-			if (mafiaVote >= citizenVote)
-			{
-				EmbedFieldBuilder embedField = new EmbedFieldBuilder();
-				embedField.Name = "게임 결과";
-				embedField.Value = "총 `" + currentDay + "`일동안 게임을 진행하였습니다.\n" +
-									"`마피아`팀의 승리!";
-				result.Fields.Add(embedField);
-
-				return true;
-			}
-
-			if (mafiaVote == 0)
-			{
-				EmbedFieldBuilder embedField = new EmbedFieldBuilder();
-				embedField.Name = "게임 결과";
-				embedField.Value = "총 `" + currentDay + "`일동안 게임을 진행하였습니다.\n" +
-									"`시민`팀의 승리!";
-				result.Fields.Add(embedField);
-
-				return true;
-			}
-
-			return false;
-		}
-
 		// 밤
 		private async Task NightTime()
 		{
 			// 초기화
+			skipPlayer = new List<ulong>();
 			currentScene = new Scene();
 
 			// 시간설정
@@ -391,7 +384,7 @@ namespace DiscordMafiaBot.Core.Commands
 			await Timer(times.night);
 			
 			// 늑대인간
-			if (mafiaCount == 0 && wolfLink)
+			if (mafiaCount == 0 && gameData.wolfLink)
 			{
 				await KillPlayer(currentScene.wolfPick.Value, true);
 			}
@@ -439,6 +432,49 @@ namespace DiscordMafiaBot.Core.Commands
 			// 초기화
 			playerList = new ConcurrentDictionary<ulong, Player>();
 			gameStatus = GameStatus.Ready;
+		}
+
+		// 게임 상황 체크
+		private bool CheckGame()
+		{
+			int mafiaVote = 0;
+			int citizenVote = 0;
+
+			foreach (var userId in gameData.livePlayer)
+			{
+				if (playerList[userId].job >= JobType.Mafia)
+				{
+					mafiaVote++;
+				}
+				else
+				{
+					citizenVote++;
+				}
+			}
+
+			if (mafiaVote >= citizenVote)
+			{
+				EmbedFieldBuilder embedField = new EmbedFieldBuilder();
+				embedField.Name = "게임 결과";
+				embedField.Value = "총 `" + gameData.currentDay + "`일동안 게임을 진행하였습니다.\n" +
+									"`마피아`팀의 승리!";
+				result.Fields.Add(embedField);
+
+				return true;
+			}
+
+			if (mafiaVote == 0)
+			{
+				EmbedFieldBuilder embedField = new EmbedFieldBuilder();
+				embedField.Name = "게임 결과";
+				embedField.Value = "총 `" + gameData.currentDay + "`일동안 게임을 진행하였습니다.\n" +
+									"`시민`팀의 승리!";
+				result.Fields.Add(embedField);
+
+				return true;
+			}
+
+			return false;
 		}
 
 		// 직업 설정
@@ -526,7 +562,7 @@ namespace DiscordMafiaBot.Core.Commands
 			List<ulong> mafias = new List<ulong>();
 			Random r = new Random();
 
-			foreach (var userId in livePlayer)
+			foreach (var userId in gameData.livePlayer)
 			{
 				if (playerList[userId].job == JobType.Mafia)
 				{
@@ -552,7 +588,7 @@ namespace DiscordMafiaBot.Core.Commands
 				else if (mafiaCount != 0 && playerList[userId].job == JobType.Wolf)
 				{
 					LinkMafia(FindMafia(), currentScene.mafiaKill);
-					wolfLink = true;
+					gameData.wolfLink = true;
 					await NobodyDead();
 				}
 				else
@@ -561,7 +597,7 @@ namespace DiscordMafiaBot.Core.Commands
 					if (mafiaCount != 0 && currentScene.wolfPick.Value == userId)
 					{
 						LinkMafia(FindMafia(), currentScene.wolfPick.Key);
-						wolfLink = true;
+						gameData.wolfLink = true;
 					}
 
 					await Context.Channel.SendMessageAsync("어젯밤, 누군가에 의해 <@" + userId + ">님이 살해당하였습니다..");
@@ -579,7 +615,7 @@ namespace DiscordMafiaBot.Core.Commands
 				DeletePlayer(userId);
 			}
 
-			playerCount--;
+			gameData.playerCount--;
 		}
 
 		// 아무도 안죽음
@@ -592,7 +628,7 @@ namespace DiscordMafiaBot.Core.Commands
 		private void DeletePlayer(ulong userId)
 		{
 			playerList[userId].isDead = true;
-			livePlayer.RemoveAt(livePlayer.IndexOf(userId));
+			gameData.livePlayer.RemoveAt(gameData.livePlayer.IndexOf(userId));
 
 			if (playerList[userId].job == JobType.Mafia)
 			{

@@ -254,7 +254,7 @@ namespace DiscordMafiaBot.Core.Commands
 		}
 
 		// JobType을 String으로 변환
-		protected string ConvertJob(JobType jobType)
+		public static string ConvertJob(JobType jobType)
 		{
 			string returnValue = "";
 

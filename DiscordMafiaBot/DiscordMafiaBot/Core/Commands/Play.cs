@@ -13,12 +13,12 @@ namespace DiscordMafiaBot.Core.Commands
 	public class Play : Mafia
 	{
 		public static ulong judgeTarget = 0;
-		public static int mafiaCount;
 		private static int agree;
 		private static int disagree;
 		private static EmbedBuilder result = new EmbedBuilder();
 		private static List<ulong> nojobPlayer;
 		private static List<ulong> skipPlayer;
+
 
 		// 시작 명령어
 		[Command("start")]
@@ -48,6 +48,7 @@ namespace DiscordMafiaBot.Core.Commands
 			if (mainChannel == null)
 			{
 				mainChannel = Context.Channel;
+				mainGuild = Context.Guild;
 				await Context.Channel.SendMessageAsync("메인채널이 없네요? 일단 `#" + Context.Channel + "`로 설정하겠습니다!");
 			}
 
@@ -61,25 +62,26 @@ namespace DiscordMafiaBot.Core.Commands
 				nojobPlayer.Add(keyvalue.Key);
 			}
 
-			// 마피아 1
-			if (gameData.playerCount <= 7) { SetJob(JobType.Mafia, 1); mafiaCount = 1; }
-			// 마피아 2
-			else if (gameData.playerCount <= 12) { SetJob(JobType.Mafia, 2); mafiaCount = 2; }
-			// 마피아 3
-			else { SetJob(JobType.Mafia, 3); mafiaCount = 3; }
+			SetJob(JobType.Mafia, 2); gameData.mafiaCount = 2;
+			//// 마피아 1
+			//if (gameData.playerCount <= 10) { SetJob(JobType.Mafia, 1); gameData.mafiaCount = 1; }
+			//// 마피아 2
+			//else if (gameData.playerCount <= 12) { SetJob(JobType.Mafia, 2); gameData.mafiaCount = 2; }
+			//// 마피아 3
+			//else { SetJob(JobType.Mafia, 3); gameData.mafiaCount = 3; }
 
-			// 늑대인간 1
-			if (gameData.playerCount >= 8) { SetJob(JobType.Wolf, 1); }
+			//// 늑대인간 1
+			//if (gameData.playerCount >= 8) { SetJob(JobType.Wolf, 1); }
 
-			// 스파이 1
-			if (gameData.playerCount >= 6) { SetJob(JobType.Spy, 1); }
+			//// 스파이 1
+			//if (gameData.playerCount >= 6) { SetJob(JobType.Spy, 1); }
 
 			// 의사 1 경찰 1
 			SetJob(JobType.Cop, 1);
 			SetJob(JobType.Doctor, 1);
 
-			// 국회의원 1
-			if (gameData.playerCount >= 7) { SetJob(JobType.MOCongress, 1); }
+			//// 국회의원 1
+			//if (gameData.playerCount >= 7) { SetJob(JobType.MOCongress, 1); }
 
 			// 직업 알려주기
 			await SendJob();
@@ -106,7 +108,7 @@ namespace DiscordMafiaBot.Core.Commands
 			}
 
 			// 게임 진행중에만 사용 가능
-			if (gameStatus == GameStatus.Ready)
+			if (gameStatus != GameStatus.Day)
 			{
 				await WrongCommand(CommandType.Timing);
 				return;
@@ -129,10 +131,9 @@ namespace DiscordMafiaBot.Core.Commands
 				await Context.Channel.SendMessageAsync("<@" + Context.User.Id + ">님이 스킵 투표를 하였습니다.");
 				skipPlayer.Add(Context.User.Id);
 
-				if (skipPlayer.Count > (gameData.playerCount / 2))
+				if (skipPlayer.Count >= (gameData.playerCount / 2))
 				{
-					await Context.Channel.SendMessageAsync("타이머가 스킵되었습니다.");
-					isTimerStop = true;
+					SkipTime();
 				}
 			}
 		}
@@ -146,7 +147,7 @@ namespace DiscordMafiaBot.Core.Commands
 				await Context.Channel.SendMessageAsync("이 명령어는 디버깅용으로 만들어 졌습니다.");
 				return;
 			}
-			
+
 			isTimerStop = true;
 		}
 
@@ -235,7 +236,7 @@ namespace DiscordMafiaBot.Core.Commands
 
 			await EndGame();
 		}
-		
+
 		// 낮
 		private async Task DayTime()
 		{
@@ -263,13 +264,13 @@ namespace DiscordMafiaBot.Core.Commands
 			await Context.Channel.SendMessageAsync("이제부터 투표시간입니다.\n" +
 													"봇에게 DM으로 `s.vote 플레이어_번호`를 입력해주세요!");
 			await Timer(times.vote);
-			
+
 			// 집계
 			ConcurrentDictionary<ulong, int> voteReult = new ConcurrentDictionary<ulong, int>();
 			ulong bigestUser = Context.User.Id;
 
 			voteReult[bigestUser] = 0;
-			foreach(var keyvalue in voteList)
+			foreach (var keyvalue in voteList)
 			{
 				if (keyvalue.Value != 0)
 				{
@@ -290,8 +291,8 @@ namespace DiscordMafiaBot.Core.Commands
 					}
 				}
 			}
-			
-			foreach(var keyvalue in voteReult)
+
+			foreach (var keyvalue in voteReult)
 			{
 				if (voteReult[bigestUser] < keyvalue.Value)
 				{
@@ -359,7 +360,7 @@ namespace DiscordMafiaBot.Core.Commands
 				else
 				{
 					embed.Description += "투표 결과 <@" + judgeTarget + ">님의 사형이 집행되었습니다.";
-					await KillPlayer(judgeTarget, false);
+					await KillPlayer(judgeTarget);
 				}
 			}
 			else
@@ -375,42 +376,35 @@ namespace DiscordMafiaBot.Core.Commands
 		{
 			// 초기화
 			skipPlayer = new List<ulong>();
-			currentScene = new Scene();
+			gameData.ResetJobProcess();
 
 			// 시간설정
 			gameStatus = GameStatus.Night;
 
 			await Context.Channel.SendMessageAsync("밤이되었습니다! 봇에게 DM으로 `s.shot 플레이어_번호`로 능력을 사용해주세요!");
 			await Timer(times.night);
-			
+
 			// 늑대인간
-			if (mafiaCount == 0 && gameData.wolfLink)
-			{
-				await KillPlayer(currentScene.wolfPick.Value, true);
-			}
+			gameData.jobProcess.wolf.AbilityRoutine();
+
+			// 의사
+			gameData.jobProcess.doctor.AbilityRoutine();
 
 			// 마피아
-			if (mafiaCount > 0)
-			{
-				await KillPlayer(currentScene.mafiaKill, true);
-			}
+			gameData.jobProcess.killer.AbilityRoutine();
 
 			// 경찰
-			if (currentScene.copCheck.Key == 0 || currentScene.copCheck.Value == 0) { }
-			else
-			{
-				if (CheckMafiaTeam(currentScene.copCheck.Value))
-				{
-					await SendDM(currentScene.copCheck.Key, (playerList[currentScene.copCheck.Value].name + "님은 마피아팀이었습니다!"));
-				}
-				else
-				{
-					await SendDM(currentScene.copCheck.Key, (playerList[currentScene.copCheck.Value].name + "님은 마피아팀이 아니었습니다.."));
-				}
-			}
+			gameData.jobProcess.cop.AbilityRoutine();
 
 			// 스파이
-			await ShowJob(currentScene.spyCheck.Value, currentScene.spyCheck.Key);
+			gameData.jobProcess.spy.AbilityRoutine();
+		}
+
+		// 스킵 본체
+		public async void SkipTime()
+		{
+			await Context.Channel.SendMessageAsync("타이머가 스킵되었습니다.");
+			isTimerStop = true;
 		}
 
 		// 게임 종료
@@ -428,7 +422,7 @@ namespace DiscordMafiaBot.Core.Commands
 
 			result.WithColor(color);
 			await Context.Channel.SendMessageAsync("", false, result.Build());
-			
+
 			// 초기화
 			playerList = new ConcurrentDictionary<ulong, Player>();
 			gameStatus = GameStatus.Ready;
@@ -462,8 +456,7 @@ namespace DiscordMafiaBot.Core.Commands
 
 				return true;
 			}
-
-			if (mafiaVote == 0)
+			else if (mafiaVote == 0)
 			{
 				EmbedFieldBuilder embedField = new EmbedFieldBuilder();
 				embedField.Name = "게임 결과";
@@ -478,7 +471,7 @@ namespace DiscordMafiaBot.Core.Commands
 		}
 
 		// 직업 설정
-		private void SetJob(JobType jobType, int count)
+		private async void SetJob(JobType jobType, int count)
 		{
 			Random r = new Random();
 			int nojob = nojobPlayer.Count;
@@ -502,7 +495,16 @@ namespace DiscordMafiaBot.Core.Commands
 			{
 				for (int i = 0; i < count; i++)
 				{
-					LinkMafia(sameJobs[i], sameJobs[(i + 1) % count]);
+					ulong userId = sameJobs[i];
+
+					for (int j = 0; j < count; j++)
+					{
+						if (i == j) continue;
+
+						ulong targetId = sameJobs[j];
+
+						await SendDM(userId, playerList[targetId].name + "님은 당신과 같은 " + ConvertJob(playerList[targetId].job) + "입니다. 서로 잘 협력하시라구요..?");
+					}
 				}
 			}
 		}
@@ -516,124 +518,61 @@ namespace DiscordMafiaBot.Core.Commands
 			}
 		}
 
-		// 타인에게 직업 알려주기
-		private async Task ShowJob(ulong targetId, ulong sourceId)
-		{
-			if (targetId == 0 || sourceId == 0)
-			{
-				return;
-			}
+		//// 타인에게 직업 알려주기
+		//private async Task ShowJob(ulong targetId, ulong sourceId)
+		//{
+		//	if (targetId == 0 || sourceId == 0)
+		//	{
+		//		return;
+		//	}
 
-			await SendDM(sourceId, playerList[targetId].name + "님은.. " + ConvertJob(playerList[targetId].job) + "입니다!");
+		//	await SendDM(sourceId, playerList[targetId].name + "님은.. " + ConvertJob(playerList[targetId].job) + "입니다!");
 
-			if (playerList[sourceId].job == JobType.Spy && playerList[targetId].job == JobType.Mafia)
-			{
-				LinkMafia(targetId, sourceId);
-			}
-		}
+		//	if (playerList[sourceId].job == JobType.Spy && playerList[targetId].job == JobType.Mafia)
+		//	{
+		//		LinkMafia(targetId, sourceId);
+		//	}
+		//}
 
-		// 접선
-		private async void LinkMafia(ulong mafiaId, ulong otherId)
-		{
-			await SendDM(otherId, playerList[mafiaId].name + "님이 " + ConvertJob(playerList[mafiaId].job) + "인게 확인되어 접선을 성공했습니다! 이제부터 개인 DM으로 메세지를 주고받을 수 있습니다.");
-			await SendDM(mafiaId, playerList[otherId].name + "님이 " + ConvertJob(playerList[otherId].job) + "직업으로 접선을 하였습니다! 이제부터 개인 DM으로 메세지를 주고받을 수 있습니다.");
-		}
+		//// 마피아팀인지 체크해 알려주기
+		//private bool CheckMafiaTeam(ulong targetId)
+		//{
+		//	// 입력 안됨
+		//	if (targetId == 0)
+		//	{
+		//		return false;
+		//	}
 
-		// 마피아팀인지 체크해 알려주기
-		private bool CheckMafiaTeam(ulong targetId)
-		{
-			// 입력 안됨
-			if (targetId == 0)
-			{
-				return false;
-			}
+		//	// 마피아 팀이면
+		//	if (playerList[targetId].job >= JobType.Mafia)
+		//	{
+		//		return true;
+		//	}
+		//	return false;
+		//}
 
-			// 마피아 팀이면
-			if (playerList[targetId].job >= JobType.Mafia)
-			{
-				return true;
-			}
-			return false;
-		}
+		//// 마피아 찾기
+		//private ulong FindMafia()
+		//{
+		//	List<ulong> mafias = new List<ulong>();
+		//	Random r = new Random();
 
-		// 마피아 찾기
-		private ulong FindMafia()
-		{
-			List<ulong> mafias = new List<ulong>();
-			Random r = new Random();
+		//	foreach (var userId in gameData.livePlayer)
+		//	{
+		//		if (playerList[userId].job == JobType.Mafia)
+		//		{
+		//			mafias.Add(userId);
+		//		}
+		//	}
 
-			foreach (var userId in gameData.livePlayer)
-			{
-				if (playerList[userId].job == JobType.Mafia)
-				{
-					mafias.Add(userId);
-				}
-			}
-
-			return mafias[r.Next(0, mafias.Count)];
-		}
+		//	return mafias[r.Next(0, mafias.Count)];
+		//}
 
 		// 사람 죽이기
-		private async Task KillPlayer(ulong userId, bool isMafia)
+		private async Task KillPlayer(ulong userId)
 		{
-			// 마피아에 의한 살인인지
-			if (isMafia)
-			{
-				// 의사가 살렸는지
-				if (currentScene.mafiaKill == currentScene.doctorSaver || userId == 0)
-				{
-					await NobodyDead();
-				}
-				// 늑대인간을 지목했는지
-				else if (mafiaCount != 0 && playerList[userId].job == JobType.Wolf)
-				{
-					LinkMafia(FindMafia(), currentScene.mafiaKill);
-					gameData.wolfLink = true;
-					await NobodyDead();
-				}
-				else
-				{
-					// 늑대인간이 지목한사람인지
-					if (mafiaCount != 0 && currentScene.wolfPick.Value == userId)
-					{
-						LinkMafia(FindMafia(), currentScene.wolfPick.Key);
-						gameData.wolfLink = true;
-					}
-
-					await Context.Channel.SendMessageAsync("어젯밤, 누군가에 의해 <@" + userId + ">님이 살해당하였습니다..");
-					DeletePlayer(userId);
-
-					//if (userId == 254872929395802112 && currentDay == 1)
-					//{
-					//	await Context.Channel.SendMessageAsync("아니근데 개발자를 퍼블시키는건 좀 아니지 않나..");
-					//}
-				}
-			}
-			else
-			{
-				await Context.Channel.SendMessageAsync("<@" + userId + ">님이 사망하였습니다..");
-				DeletePlayer(userId);
-			}
-
-			gameData.playerCount--;
-		}
-
-		// 아무도 안죽음
-		private async Task NobodyDead()
-		{
-			await Context.Channel.SendMessageAsync("어젯밤, 기적적으로 아무도 죽지 않았습니다!");
-		}
-
-		// 플레이어 삭제
-		private void DeletePlayer(ulong userId)
-		{
-			playerList[userId].isDead = true;
-			gameData.livePlayer.RemoveAt(gameData.livePlayer.IndexOf(userId));
-
-			if (playerList[userId].job == JobType.Mafia)
-			{
-				mafiaCount--;
-			}
+			await Context.Channel.SendMessageAsync("<@" + userId + ">님이 사망하였습니다..");
+			DeletePlayer(userId);
 		}
 	}
 }

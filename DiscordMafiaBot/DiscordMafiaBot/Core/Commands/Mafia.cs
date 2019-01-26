@@ -11,21 +11,12 @@ using Discord.WebSocket;
 
 namespace DiscordMafiaBot.Core.Commands
 {
-	public class Scene
-	{
-		public ulong doctorSaver = 0;
-		public ulong mafiaKill = 0;
-		public KeyValuePair<ulong, ulong> wolfPick = new KeyValuePair<ulong, ulong>(0, 0);		// key = 늑대 value = 늑대가 고른 사람
-		public KeyValuePair<ulong, ulong> copCheck = new KeyValuePair<ulong, ulong>(0, 0);      // key = 경찰 value = 경찰 지목자
-		public KeyValuePair<ulong, ulong> spyCheck = new KeyValuePair<ulong, ulong>(0, 0);		// key = 스파이 value = 스파이 지목자
-	}
-
 	public class Times
 	{
-		public int day = 300;
+		public int day = 300;//180;
 		public int vote = 300;//60;
 		public int judge = 300;//60;
-		public int night = 300;//180;
+		public int night = 300;//60;
 	}
 	
 	public class Player
@@ -69,16 +60,23 @@ namespace DiscordMafiaBot.Core.Commands
 
 	public class Mafia : ModuleBase<SocketCommandContext>
 	{
+		// 리스트들
 		public static ConcurrentDictionary<ulong, Player> playerList = new ConcurrentDictionary<ulong, Player>();
-		public static ConcurrentDictionary<ulong, ulong> voteList;	// 투표 리스트 <투표한 플레이어, key가 투표한 플레이어>
+		public static ConcurrentDictionary<ulong, ulong> voteList;  // 투표 리스트 <투표한 플레이어, key가 투표한 플레이어>
+
+		// 게임 설정 관련
 		public static Color color = new Color(252, 138, 136);		// 시그니처 컬러
 		public static GameStatus gameStatus = GameStatus.Ready;     // 게임 상태
 		public static Times times = new Times();					// 시간 설정
 		public static ISocketMessageChannel mainChannel;            // 메인 채널
 		public static SocketGuild mainGuild;						// 메인 길드
 		public static bool isTimerStop = false;                     // 타이머 정지 플래그
-		public static Scene currentScene;                           // 현재 씬
+
+		public static bool debug = true;							// 디버그용인지
+
+		// 게임 데이터
 		public static GameData gameData;							// 게임 데이터들
+
 
 		// 상태 확인 명령어
 		[Command("status"), Summary("Mafia show state command")]
@@ -251,6 +249,18 @@ namespace DiscordMafiaBot.Core.Commands
 			string userId = input.Substring(2, 18);
 
 			return Convert.ToUInt64(userId);
+		}
+
+		// 플레이어 삭제
+		public static void DeletePlayer(ulong userId)
+		{
+			playerList[userId].isDead = true;
+			gameData.livePlayer.RemoveAt(gameData.livePlayer.IndexOf(userId));
+
+			if (playerList[userId].job == JobType.Mafia)
+			{
+				gameData.mafiaCount--;
+			}
 		}
 
 		// JobType을 String으로 변환

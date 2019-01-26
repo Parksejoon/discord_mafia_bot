@@ -30,6 +30,18 @@ namespace DiscordMafiaBot.Core.Commands
 				return;
 			}
 
+			// 디버깅이면
+			if (debug)
+			{
+				await JoinPlayer(254872929395802112);
+				await JoinPlayer(535203194121355284);
+				await JoinPlayer(534781542380077066);
+				await JoinPlayer(535203279827763251);
+				await JoinPlayer(535405557620670466);
+
+				return;
+			}
+
 			if (input != null)
 			{
 				ulong userId = ConvertUserId(input);

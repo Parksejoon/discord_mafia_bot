@@ -29,8 +29,11 @@ namespace DiscordMafiaBot.Core.Commands
 				return;
 			}
 
+			ulong userId = Context.User.Id;
+			ulong targetId;
+
 			// 죽은사람이 사용
-			if (playerList[Context.User.Id].isDead)
+			if (playerList[userId].isDead)
 			{
 				await WrongCommand(CommandType.DiePlayer);
 				return;
@@ -38,18 +41,24 @@ namespace DiscordMafiaBot.Core.Commands
 
 			// 설명용 embed 생성
 			EmbedBuilder embed = new EmbedBuilder();
-			ulong userId;
 
 			if (input == null)
 			{
-				userId = Context.User.Id;
+				targetId = Context.User.Id;
 			}
 			else
 			{
-				userId = livePlayer[int.Parse(input) - 1];
+				// 잘못된 입력
+				if (int.Parse(input) > gameData.livePlayer.Count)
+				{
+					await WrongCommand(CommandType.Original);
+					return;
+				}
 
+				targetId = gameData.livePlayer[int.Parse(input) - 1];
+				
 				// 죽은사람 지목
-				if (playerList[userId].isDead)
+				if (playerList[targetId].isDead)
 				{
 					await WrongCommand(CommandType.ChooseDiePlayer);
 					return;
@@ -57,55 +66,76 @@ namespace DiscordMafiaBot.Core.Commands
 			}
 
 			embed.WithColor(color);
-			embed.Description = "이 명령어는 @player가 아닌 s.status에 나타난 `유저의 번호`로 대상을 지정합니다.\n" +
-								"만약 `대상을 지정하지 않은 경우 능력이 사용되지 않으니` 주의하세요!\n" +
-								"(대상을 지정하지 않아도 되는 능력 제외)";
+			embed.Description = "이 명령어는 @player가 아닌 s.live에 나타난 `유저의 번호`로 대상을 지정합니다.\n" +
+								"만약 `대상을 지정하지 않은` 경우 `자신에게 능력이 사용`되니 주의하세요!\n";
 			await Context.Channel.SendMessageAsync("", false, embed.Build());
 
 			JobType jobType = playerList[Context.User.Id].job;
+			UserData userData = new UserData();
+
+			userData.userId = userId;
+			userData.targetId = targetId;
 
 			switch (jobType)
 			{
 				case JobType.Citizen:
-					await Context.Channel.SendMessageAsync("어.. 시민이 무슨 능력이 있었나요?");
+					await Context.Channel.SendMessageAsync("시민은 빠져있어, 뒤지기 싫으면");
 					break;
 				case JobType.Cop:
-					await Context.Channel.SendMessageAsync(playerList[userId].name + "님을 조사했습니다. 결과는 낮에 나오게 됩니다.");
-					currentScene.copCheck = new KeyValuePair<ulong, ulong>(Context.User.Id, userId);
+					await Context.Channel.SendMessageAsync(playerList[targetId].name + "님을 조사하기로 결정했습니다. \n\"뭔가.. 냄세가 나는데..?\"");
+
+					// 대상 조사
+					gameData.jobProcess.cop.AddUserData(userData);
+
 					break;
 				case JobType.Doctor:
-					await Context.Channel.SendMessageAsync(playerList[userId].name + "님을 살렸습니다. 과연 어떤 결과가 나올까요?");
-					currentScene.doctorSaver = userId;
+					await Context.Channel.SendMessageAsync(playerList[targetId].name + "님을 살리기로 결정하였습니다. \n\"엉뚱한사람을 도왔다간.. 어떻게될지 몰라..\"");
+
+					// 대상 살림
+					gameData.jobProcess.doctor.AddUserData(userData);
+
 					break;
 				case JobType.MOCongress:
-					await Context.Channel.SendMessageAsync("국회의원은 가만히 있어도 되요..");
+					await Context.Channel.SendMessageAsync("국회의원님, 역시 빡대가리라는걸 인증하시는군요!");
 					break;
 				case JobType.Mafia:
-					await Context.Channel.SendMessageAsync(playerList[userId].name + "님을 향해 총구를 겨눕니다!");
-					currentScene.mafiaKill = userId;
+					await Context.Channel.SendMessageAsync(playerList[targetId].name + "님을 향해 총구를 겨눕니다.. \n\"예전부터.. 맘에 안들었어..\"");
+
+					// 대상 죽임
+					gameData.jobProcess.killer.AddUserData(userData);
+
 					break;
 				case JobType.Wolf:
-					if (wolfLink && Play.mafiaCount == 0)
+					if (gameData.jobProcess.wolf.wolfLinked.Contains(targetId) && gameData.mafiaCount == 0)
 					{
-						await Context.Channel.SendMessageAsync(playerList[userId].name + "님을 물어 뜯기로 결정했습니다! 으르릉..");
-						currentScene.wolfPick = new KeyValuePair<ulong, ulong>(Context.User.Id, userId);
+						await Context.Channel.SendMessageAsync(playerList[targetId].name + "님을 물어 뜯기로 결정했습니다! \n\"으르릉..\"");
+
+						// 대상 죽임
+						gameData.jobProcess.killer.AddUserData(userData);
+
 					}
-					else if (wolfLink)
+					else if (gameData.jobProcess.wolf.wolfLinked.Contains(targetId))
 					{
-						await Context.Channel.SendMessageAsync(playerList[userId].name + "이미 접선 했잖아요! 멍!");
+						await Context.Channel.SendMessageAsync(playerList[targetId].name + "이미 접선 했잖아요! \n\"멍!\"");
 					}
 					else
 					{
-						await Context.Channel.SendMessageAsync(playerList[userId].name + "님을 조사했습니다. 멍멍, 멍멍멍?");
-						currentScene.wolfPick = new KeyValuePair<ulong, ulong>(Context.User.Id, userId);
+						await Context.Channel.SendMessageAsync(playerList[targetId].name + "님을 조사했습니다. \n\"킁킁\"");
+
+						// 대상 조사
+						gameData.jobProcess.wolf.AddUserData(userData);
+
 					}
 					break;
 				case JobType.Spy:
-					await Context.Channel.SendMessageAsync(playerList[userId].name + "님을 조사했습니다. 과연.. 그는 누구일까요?");
-					currentScene.spyCheck = new KeyValuePair<ulong, ulong>(Context.User.Id, userId);
+					await Context.Channel.SendMessageAsync(playerList[targetId].name + "님의 집을 조사하기로 결정했습니다. \n\"이 집에는 누가살고있을까..?\"");
+
+					// 대상 조사
+					gameData.jobProcess.spy.AddUserData(userData);
+
 					break;
 				default:
-					await Context.Channel.SendMessageAsync("직업이 없는디요?");
+					await Context.Channel.SendMessageAsync("이 메세지가 보이면 좆된겁니다. 개발자에게 문의하세요.");
 					break;
 			}
 		}
@@ -134,9 +164,24 @@ namespace DiscordMafiaBot.Core.Commands
 				await WrongCommand(CommandType.DiePlayer);
 				return;
 			}
+			
+			// 입력 없을시
+			if (input == null)
+			{
+				await WrongCommand(CommandType.Original);
+				return;
+			}
 
-			voteList[Context.User.Id] = livePlayer[int.Parse(input) - 1];
-			await Context.Channel.SendMessageAsync(playerList[livePlayer[int.Parse(input) - 1]].name + "님을 투표하셨습니다!");
+			// 잘못된 입력
+			if (int.Parse(input) > gameData.livePlayer.Count)
+			{
+				await WrongCommand(CommandType.Original);
+				return;
+			}
+
+
+			voteList[Context.User.Id] = gameData.livePlayer[int.Parse(input) - 1];
+			await Context.Channel.SendMessageAsync(playerList[gameData.livePlayer[int.Parse(input) - 1]].name + "님을 투표하셨습니다!");
 		}
 	}
 }

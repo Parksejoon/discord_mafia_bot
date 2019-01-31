@@ -106,7 +106,7 @@ namespace DiscordMafiaBot.Core.Commands
 
 					break;
 				case JobType.Wolf:
-					if (gameData.jobProcess.wolf.wolfLinked.Contains(targetId) && gameData.mafiaCount == 0)
+					if (gameData.jobProcess.wolf.wolfLinked.Contains(userId) && gameData.mafiaCount == 0)
 					{
 						await Context.Channel.SendMessageAsync(playerList[targetId].name + "님을 물어 뜯기로 결정했습니다! \n\"으르릉..\"");
 

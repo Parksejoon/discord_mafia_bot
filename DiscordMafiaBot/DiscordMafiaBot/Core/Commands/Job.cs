@@ -143,7 +143,27 @@ namespace DiscordMafiaBot.Core.Commands
 			}
 			else
 			{
-				await Mafia.mainChannel.SendMessageAsync("어젯밤, 누군가에 의해 <@" + targetPlayer + ">님이 살해당하였습니다..");
+				// 늑대인간 접선
+				if (Mafia.playerList[targetPlayer].job == JobType.Wolf && !Mafia.gameData.jobProcess.wolf.wolfLinked.Contains(targetPlayer))
+				{
+					Mafia.gameData.jobProcess.wolf.wolfLinked.Add(targetPlayer);
+
+					await Mafia.mainChannel.SendMessageAsync("어젯밤, 기적적으로 아무도 죽지 않았습니다!");
+
+					foreach (var player in Mafia.playerList)
+					{
+						if (player.Value.job == JobType.Mafia && !player.Value.isDead)
+						{
+							await Mafia.mainGuild.GetUser(targetPlayer).SendMessageAsync(Mafia.playerList[player.Key].name + "님이 " + Mafia.ConvertJob(player.Value.job) + "인게 확인되어 접선을 성공했습니다! 이제부터 개인 DM으로 메세지를 주고받을 수 있습니다.");
+							await Mafia.mainGuild.GetUser(player.Key).SendMessageAsync(Mafia.playerList[targetPlayer].name + "님이 " + Mafia.ConvertJob(Mafia.playerList[targetPlayer].job) + "인게 확인되어 접선을 성공했습니다! 이제부터 개인 DM으로 메세지를 주고받을 수 있습니다.");
+						}
+					}
+				}
+				else
+				{
+					Mafia.DeletePlayer(targetPlayer);
+					await Mafia.mainChannel.SendMessageAsync("어젯밤, 누군가에 의해 <@" + targetPlayer + ">님이 살해당하였습니다..");
+				}
 			}
 		}
 
@@ -177,13 +197,20 @@ namespace DiscordMafiaBot.Core.Commands
 			ulong targetId = userDatas[index].targetId;
 			JobType targetJob = Mafia.playerList[targetId].job;
 
-			if (targetJob == JobType.Mafia ||
-				targetId == Mafia.gameData.jobProcess.killer.targetPlayer ||
-				userId == Mafia.gameData.jobProcess.killer.targetPlayer)
+			if ((targetJob == JobType.Mafia ||
+				targetId == Mafia.gameData.jobProcess.killer.targetPlayer) &&
+				!wolfLinked.Contains(userId))
 			{
-				await Mafia.mainGuild.GetUser(userId).SendMessageAsync(Mafia.playerList[targetId].name + "님이 " + Mafia.ConvertJob(targetJob) + "인게 확인되어 접선을 성공했습니다! 이제부터 개인 DM으로 메세지를 주고받을 수 있습니다.");
-				await Mafia.mainGuild.GetUser(targetId).SendMessageAsync(Mafia.playerList[userId].name + "님이 " + Mafia.ConvertJob(Mafia.playerList[userId].job) + "인게 확인되어 접선을 성공했습니다! 이제부터 개인 DM으로 메세지를 주고받을 수 있습니다.");
 				wolfLinked.Add(userId);
+
+				foreach (var player in Mafia.playerList)
+				{
+					if (player.Value.job == JobType.Mafia && !player.Value.isDead)
+					{
+						await Mafia.mainGuild.GetUser(userId).SendMessageAsync(Mafia.playerList[player.Key].name + "님이 " + Mafia.ConvertJob(player.Value.job) + "인게 확인되어 접선을 성공했습니다! 이제부터 개인 DM으로 메세지를 주고받을 수 있습니다.");
+						await Mafia.mainGuild.GetUser(player.Key).SendMessageAsync(Mafia.playerList[userId].name + "님이 " + Mafia.ConvertJob(Mafia.playerList[userId].job) + "인게 확인되어 접선을 성공했습니다! 이제부터 개인 DM으로 메세지를 주고받을 수 있습니다.");
+					}
+				}
 			}
 		}
 	}

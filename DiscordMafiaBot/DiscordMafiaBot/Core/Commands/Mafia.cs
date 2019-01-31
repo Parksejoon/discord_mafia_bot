@@ -65,7 +65,7 @@ namespace DiscordMafiaBot.Core.Commands
 		public static ConcurrentDictionary<ulong, ulong> voteList;  // 투표 리스트 <투표한 플레이어, key가 투표한 플레이어>
 
 		// 게임 설정 관련
-		public static Color color = new Color(252, 138, 136);		// 시그니처 컬러
+		public static Color color = new Color(240, 240, 240);		// 시그니처 컬러
 		public static GameStatus gameStatus = GameStatus.Ready;     // 게임 상태
 		public static Times times = new Times();					// 시간 설정
 		public static ISocketMessageChannel mainChannel;            // 메인 채널
@@ -144,7 +144,6 @@ namespace DiscordMafiaBot.Core.Commands
 
 			foreach (var player in gameData.livePlayer)
 			{
-				Console.WriteLine(player);
 				embedField.Value += num.ToString() + ". <@" + player + ">\n";
 				num++;
 			}

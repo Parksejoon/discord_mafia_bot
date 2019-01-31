@@ -62,7 +62,8 @@ namespace DiscordMafiaBot.Core.Commands
 				nojobPlayer.Add(keyvalue.Key);
 			}
 
-			SetJob(JobType.Mafia, 2); gameData.mafiaCount = 2;
+			SetJob(JobType.Mafia, 1); gameData.mafiaCount = 1;
+			SetJob(JobType.Spy, 1);
 			//// 마피아 1
 			//if (gameData.playerCount <= 10) { SetJob(JobType.Mafia, 1); gameData.mafiaCount = 1; }
 			//// 마피아 2
@@ -383,15 +384,15 @@ namespace DiscordMafiaBot.Core.Commands
 
 			await Context.Channel.SendMessageAsync("밤이되었습니다! 봇에게 DM으로 `s.shot 플레이어_번호`로 능력을 사용해주세요!");
 			await Timer(times.night);
-
-			// 늑대인간
-			gameData.jobProcess.wolf.AbilityRoutine();
-
+			
 			// 의사
 			gameData.jobProcess.doctor.AbilityRoutine();
 
 			// 마피아
 			gameData.jobProcess.killer.AbilityRoutine();
+
+			// 늑대인간
+			gameData.jobProcess.wolf.AbilityRoutine();
 
 			// 경찰
 			gameData.jobProcess.cop.AbilityRoutine();
@@ -445,6 +446,8 @@ namespace DiscordMafiaBot.Core.Commands
 					citizenVote++;
 				}
 			}
+
+			Console.WriteLine(gameData.currentDay + "일차 / 마피아:" + mafiaVote + "  시민:" + citizenVote);
 
 			if (mafiaVote >= citizenVote)
 			{
